@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from 'react-router-dom'
+
 import numeral from 'numeral'
 import classNames from 'classnames'
 import './App.css'
 import { RecoilRoot, useRecoilState } from 'recoil'
 import factorState, { BASE_FCOIN, BASE_THB, DEFAULT_STATE } from './recoil/factor-state'
 import { getFCoinFactor, getThbFactor } from './utils/convert'
+import TaskContainers from './TaskContainers'
 
 const inputClassName = 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline'
 const FactorSetup = () => {
@@ -183,17 +190,29 @@ const DisplayFactorConvert = () => {
   )
 }
 
+const FlyffFcoinCalculate = () => {
+  return (
+    <div className="App">
+      <FactorSetup />
+      <DisplayFactorConvert />
+      <footer>
+        powered by <a href="https://hellfactory.com/" target="_blank" className="text-blue-600">Hell Factory </a>
+      </footer>
+    </div>
+  )
+}
+
 function App() {
   return (
-    <RecoilRoot>
-      <div className="App">
-        <FactorSetup />
-        <DisplayFactorConvert />
-        <footer>
-          powered by <a href="https://hellfactory.com/" target="_blank" className="text-blue-600">Hell Factory </a>
-        </footer>
-      </div>
-    </RecoilRoot>
+    <BrowserRouter>
+      <RecoilRoot>
+        <Routes>
+          <Route index={true} element={<FlyffFcoinCalculate />} />
+          <Route path="/tasks" element={<TaskContainers />} />
+        </Routes>
+      </RecoilRoot>
+    </BrowserRouter>
+
   )
 }
 
