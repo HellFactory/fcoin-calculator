@@ -9,7 +9,7 @@ import path from 'path'
 const PORT = process.env.PORT || 3001
 
 let browser: Browser
-let page: Page
+let pages: Record<string, Page> = {};
 
 (async () => {
 // Read data from JSON file, this will set db.data content
@@ -20,20 +20,22 @@ let page: Page
   })
   const configPage = await browser.newPage()
   await configPage.setViewport({ width: 1296, height: 800 })
-  if (process.env.NODE_ENV === 'development') {
-    await configPage.goto(`http://localhost:3000/tasks`)
-  } else {
-    await configPage.goto(`http://localhost:${process.env.PORT}/tasks`)
-  }
+  // if (process.env.NODE_ENV === 'development') {
+  //   await configPage.goto(`http://localhost:3000/tasks`)
+  // } else {
+  //   await configPage.goto(`http://localhost:${process.env.PORT}/tasks`)
+  // }
   // page = await browser.newPage()
 })()
 
-const q = async.queue(async (task: any, cb) => {
+const q = async.queue(async (payload: any, cb) => {
+  const { task, pageId } = payload
+  const page = pages[pageId]
   if (page) {
     const cmds = task.keySets.split(',')
     for (const cmd of cmds) {
       await page.keyboard.press(cmd)
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(400)
       // await new Promise((resolve) => setTimeout(resolve, 6000))
     }
   }
@@ -42,7 +44,7 @@ const q = async.queue(async (task: any, cb) => {
 
 // assign a callback
 q.drain(function () {
-  console.log('all items have been processed')
+  // console.log('all items have been processed')
 })
 
 const app = express()
@@ -54,20 +56,47 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 app.post('/api/launch', async (req: Request, res: Response) => {
-  if (page) {
-    return res.json({ message: 'ok' })
-  }
-  page = await browser.newPage()
+  const page = await browser.newPage()
   await page.setViewport({ width: 1296, height: 800 })
   await page.goto('https://universe.flyff.com/play')
-  res.json({ message: 'ok' })
+  const pageId = page.mainFrame()._id
+  pages[pageId] = page
+
+  page.on('close', () => {
+    delete pages[pageId]
+  })
+
+  res.json({ page: pageId, message: 'ok' })
 })
 app.get('/api/check', async (req: Request, res: Response) => {
   res.json({ message: 'ok' })
 })
+// app.post('/api/attack', async (req: Request, res: Response) => {
+//   const page = pages[req.body.pageId]
+//   if (!page) {
+//     return res.status(400).json({ message: 'Invalid page id' })
+//   }
+//   // do something
+//   await page.screenshot({                      // Screenshot the website using defined options
+//     path: './screenshot.png',
+//   })
+//   res.json({ message: 'ok' })
+// })
 app.post('/api/tasks', async (req: Request, res: Response) => {
   q.push(req.body)
   res.json({ message: 'ok' })
+})
+app.get('/api/session', async (req: Request, res: Response) => {
+  let pageId
+  if (Array.isArray(req.query?.pageId)) {
+    pageId = req.query?.pageId[0] || ''
+  } else {
+    pageId = req.query?.pageId || ''
+  }
+  if (pages[pageId as string]) {
+    return res.json({ page: pageId })
+  }
+  return res.json({ page: null })
 })
 
 if (process.env.NODE_ENV === 'production') {

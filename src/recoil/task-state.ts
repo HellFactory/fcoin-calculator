@@ -1,12 +1,16 @@
 import { atom, AtomEffect } from 'recoil'
 
+export type TaskType = { keySets: string, name: string, interval: number, id: string }
+export type SessionType = {
+  pageId: string | null
+  macroId: string
+  tasks: TaskType[]
+}
 export type TaskStateType = {
-  interval: number
-  tasks: { keySets: string, name: string, interval: number, id: string }[]
+  session: SessionType[]
 }
 const DEFAULT_STATE = {
-  interval: 1000,
-  tasks: [],
+  session: [],
 }
 export const localStorageEffect: (key: string) => AtomEffect<TaskStateType> =
   key =>
@@ -25,7 +29,9 @@ export const localStorageEffect: (key: string) => AtomEffect<TaskStateType> =
 const taskState = atom<TaskStateType>({
   key: 'taskState', // unique ID (with respect to other atoms/selectors)
   default: DEFAULT_STATE, // default value (aka initial value)
-  effects: [localStorageEffect('_tasks')],
+  effects: [
+    localStorageEffect('_tasks'),
+  ],
 })
 
 export default taskState

@@ -9,13 +9,15 @@ import numeral from 'numeral'
 import classNames from 'classnames'
 import './App.css'
 import { RecoilRoot, useRecoilState } from 'recoil'
-import factorState, { BASE_FCOIN, BASE_THB, DEFAULT_STATE } from './recoil/factor-state'
+import factorState, { BASE_FCOIN, DEFAULT_STATE } from './recoil/factor-state'
 import { getFCoinFactor, getThbFactor } from './utils/convert'
 import TaskContainers from './TaskContainers'
+import { useCurrencyRate } from './hooks/useCurrencyRate'
 
 const inputClassName = 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline'
 const FactorSetup = () => {
   const [factor, setFactor] = useRecoilState(factorState)
+  const rate = useCurrencyRate()
   const onChange = (event: React.ChangeEvent<HTMLInputElement>, field: string) => {
     setFactor({
       ...factor,
@@ -66,7 +68,7 @@ const FactorSetup = () => {
           </button>
         </form>
         <p>
-          {numeral(BASE_FCOIN).format('0,0.[00]')} fcoin = {numeral(BASE_THB).format('0,0.[00]')} THB
+          {numeral(BASE_FCOIN).format('0,0.[00]')} fcoin = {numeral((rate?.thb?.rate || 0) * 100).format('0,0.[00]')} THB
         </p>
       </div>
     </>
@@ -79,8 +81,10 @@ const DisplayFactorConvert = () => {
     penyaUnit: '0',
   })
   const [factor] = useRecoilState(factorState)
+  const rate = useCurrencyRate()
   const { xFcoin, xPenya } = getFCoinFactor(factor.fcoin, factor.penya)
-  const { xThb } = getThbFactor(factor.thb, BASE_FCOIN)
+  const thbUnit = (rate?.thb?.rate || 0) * 100
+  const { xThb } = getThbFactor(thbUnit, BASE_FCOIN)
   const handleFcoinUnitChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     setState({
       ...state,
