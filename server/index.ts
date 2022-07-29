@@ -20,11 +20,11 @@ let pages: Record<string, Page> = {};
   })
   const configPage = await browser.newPage()
   await configPage.setViewport({ width: 1296, height: 800 })
-  // if (process.env.NODE_ENV === 'development') {
-  //   await configPage.goto(`http://localhost:3000/tasks`)
-  // } else {
-  //   await configPage.goto(`http://localhost:${process.env.PORT}/tasks`)
-  // }
+  if (process.env.NODE_ENV === 'development') {
+    await configPage.goto(`http://localhost:3000/tasks`)
+  } else {
+    await configPage.goto(`http://localhost:${process.env.PORT}/tasks`)
+  }
   // page = await browser.newPage()
 })()
 
