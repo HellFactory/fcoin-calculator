@@ -2,7 +2,7 @@ import useSWR from 'swr'
 import axios from 'axios'
 import times from 'lodash/times'
 import { useRecoilState } from 'recoil'
-import { Button, Divider, Form, Input, List, Modal, Select, Typography } from 'antd'
+import { Button, Col, Divider, Form, Input, List, Modal, Row, Select, Typography } from 'antd'
 import taskState, { SessionType, TaskStateType, TaskType } from './recoil/task-state'
 import { useForm } from 'antd/es/form/Form'
 import { nanoid } from 'nanoid'
@@ -45,9 +45,6 @@ const CreateTaskItem: React.FC<{ session: SessionType }> = ({ session }) => {
   }
   return (
     <section style={{ textAlign: 'left' }}>
-      <Typography.Title>
-        Auto Press
-      </Typography.Title>
       <Form
         form={form}
         initialValues={{ remember: true, castTime: 0.5 }}
@@ -109,16 +106,15 @@ const LaunchSession: React.FC<{ session: SessionType, onClickLaunch: () => void 
 }
 const CreateAutoBuff: React.FC<any> = ({ session }) => {
   const [state, setState] = useRecoilState(taskState)
-  const { currentSessionIndex } = useMemo(() => {
+  const { currentSession, currentSessionIndex } = useMemo(() => {
     const index = state.session.findIndex(s => s.macroId === session.macroId)
     return {
       currentSession: state.session[index],
       currentSessionIndex: index,
     }
-  }, [session])
+  }, [state, session])
   const [form] = useForm()
   const onFinish = (values: any) => {
-    console.log('values', values)
     setState({
       ...state,
       session: [
@@ -130,13 +126,10 @@ const CreateAutoBuff: React.FC<any> = ({ session }) => {
         ...state.session.slice(currentSessionIndex + 1),
       ],
     })
-    form.resetFields()
+    // form.resetFields()
   }
   return (
     <section style={{ textAlign: 'left' }}>
-      <Typography.Title>
-        Auto Buff
-      </Typography.Title>
       <div>
         <Typography.Paragraph code>
           You can split keypress with "," eg: 1,2,3,4,5,6,7,8,9,0,Alt 1,Alt 2,Alt 3,KeyZ
@@ -144,7 +137,7 @@ const CreateAutoBuff: React.FC<any> = ({ session }) => {
       </div>
       <Form
         form={form}
-        initialValues={{ remember: true, castTime: 1.4, mainPlayerPos: 1 }}
+        initialValues={currentSession.autoBuffTask || { remember: true, castTime: 1.4, mainPlayerPos: 1 }}
         onFinish={onFinish}
         autoComplete="off"
         layout="horizontal"
@@ -241,7 +234,7 @@ const AutoBuffTaskItem: React.FC<{
       axios.post(`/api/auto-buff`, {
         pageId: props.session.pageId,
         ...props.autoBuff,
-        castTime: (props.autoBuff?.castTime || 0) * 1000
+        castTime: (props.autoBuff?.castTime || 0) * 1000,
       })
     }
   }, Number(msInterval))
@@ -253,13 +246,24 @@ const AutoBuffTaskItem: React.FC<{
   }
   return (
     <div className="flex gap-4 items-center">
-      {action ? <Button type="text" onClick={onClickStop} size="small" danger icon={<PauseOutlined />}>
-        Pause
-      </Button> : <Button type="text" size="small" onClick={onClickPlay} icon={<PlayCircleOutlined />}>Run</Button>}
-
-      <div style={{ textAlign: 'left' }}>
-        <Typography.Text>This task will run every {props.autoBuff?.interval || '-'} seconds</Typography.Text><br />
-        <Typography.Text>Your Ringmaster estimate cast time {props.autoBuff?.castTime || '-'} seconds</Typography.Text>
+      <div style={{ textAlign: 'left', border: '1px solid #E0E0E0', padding: '1em', borderRadius: '4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', gap: '12px' }}>
+          <div>
+            {action ? <Button type="text" onClick={onClickStop} size="small" danger icon={<PauseOutlined />}>
+                Pause
+              </Button> :
+              <Button type="text" size="small" onClick={onClickPlay} icon={<PlayCircleOutlined />}>Run</Button>}
+          </div>
+          <div>
+            <Typography.Text>This task will run every {props.autoBuff?.interval || '-'} seconds</Typography.Text><br />
+            <Typography.Text>Your Ringmaster estimate cast
+              time {props.autoBuff?.castTime || '-'} seconds</Typography.Text>
+          </div>
+          <div>
+            <Button size="small"
+                    onClick={() => props.onClickRemove({ session: props.session })}>Remove</Button>
+          </div>
+        </div>
         <Divider />
 
         Buff to main character at party position : [<Typography.Text
@@ -273,8 +277,6 @@ const AutoBuffTaskItem: React.FC<{
         <Typography.Text>with key sets : <Typography.Text
           code>{props.autoBuff?.buffPlayerKeySets}</Typography.Text></Typography.Text>
       </div>
-      <Button size="small"
-              onClick={() => props.onClickRemove({ session: props.session })}>Remove</Button>
     </div>
   )
 }
@@ -359,7 +361,7 @@ const TaskContainers = () => {
     })
   }
   return (
-    <div className="App container my-0 mx-auto p-8">
+    <div className="App my-0 mx-auto p-8">
       {state.session.map((session, j: number) => {
         return (
           <div key={j} style={{ border: '1px solid #cecece', margin: '1em 0', padding: '1rem', borderRadius: '6px' }}>
@@ -374,30 +376,45 @@ const TaskContainers = () => {
               </div>
             </div>
             <Divider />
-            <List
-              header={false}
-              footer={false}
-              bordered
-              dataSource={session.tasks}
-              renderItem={item => (
-                <List.Item>
-                  <TaskItem task={item} session={session} onClickRemove={handleClickRemoveTask} />
-                </List.Item>
-              )}
-              locale={{
-                emptyText: 'Empty task settings.',
-              }}
-            />
-            {session.autoBuffTask && (
-              <>
-                <AutoBuffTaskItem session={session} autoBuff={session.autoBuffTask}
-                                  onClickRemove={handleClickRemoveAutoBuff} />
-                <Divider />
-              </>
-            )}
-            <CreateTaskItem session={session} />
+            <Typography.Title>
+              Auto Press
+            </Typography.Title>
+            <Row gutter={12}>
+              <Col span={12}>
+                <CreateTaskItem session={session} />
+              </Col>
+              <Col span={12}>
+                <List
+                  header={false}
+                  footer={false}
+                  bordered
+                  dataSource={session.tasks}
+                  renderItem={item => (
+                    <List.Item>
+                      <TaskItem task={item} session={session} onClickRemove={handleClickRemoveTask} />
+                    </List.Item>
+                  )}
+                  locale={{
+                    emptyText: 'Empty task settings.',
+                  }}
+                />
+              </Col>
+            </Row>
             <Divider />
-            <CreateAutoBuff session={session} />
+            <Typography.Title>
+              Auto Buff
+            </Typography.Title>
+            <Row gutter={12}>
+              <Col span={12}>
+                <CreateAutoBuff session={session} />
+              </Col>
+              <Col span={12}>
+                {session.autoBuffTask && (
+                  <AutoBuffTaskItem session={session} autoBuff={session.autoBuffTask}
+                                    onClickRemove={handleClickRemoveAutoBuff} />
+                )}
+              </Col>
+            </Row>
           </div>
         )
       })}

@@ -43,6 +43,7 @@
     "start:server": "nodemon",
     "tsc:server": "rimraf dist && tsc --project tsconfig.server.json",
     "start": "cross-env NODE_ENV=production PORT=3001 node ./dist",
+    "prepack": "yarn run tsc:server && yarn run build",
     "pack": "pkg ./dist/index.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
