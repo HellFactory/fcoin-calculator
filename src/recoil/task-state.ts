@@ -4,7 +4,15 @@ export type TaskType = { keySets: string, name: string, interval: number, id: st
 export type SessionType = {
   pageId: string | null
   macroId: string
-  tasks: TaskType[]
+  tasks: TaskType[],
+  autoBuffTask?: {
+    interval: number
+    enable: boolean,
+    mainPlayerPos: number,
+    mainPlayerKeySets: string,
+    buffPlayerKeySets: string,
+    castTime: number,
+  } | null
 }
 export type TaskStateType = {
   session: SessionType[]

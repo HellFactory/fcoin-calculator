@@ -1,16 +1,18 @@
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import axios from 'axios'
+import times from 'lodash/times'
 import { useRecoilState } from 'recoil'
-import { Button, Divider, Form, Input, List, Modal, Typography } from 'antd'
+import { Button, Divider, Form, Input, List, Modal, Select, Typography } from 'antd'
 import taskState, { SessionType, TaskStateType, TaskType } from './recoil/task-state'
 import { useForm } from 'antd/es/form/Form'
 import { nanoid } from 'nanoid'
 import qs from 'qs'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { fetcher } from './utils/fetcher'
 import { PauseOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import { useInterval } from 'beautiful-react-hooks'
 
+const { Option } = Select
 const CreateTaskItem: React.FC<{ session: SessionType }> = ({ session }) => {
   const [state, setState] = useRecoilState(taskState)
   const { currentSessionIndex } = useMemo(() => {
@@ -42,35 +44,49 @@ const CreateTaskItem: React.FC<{ session: SessionType }> = ({ session }) => {
     form.resetFields()
   }
   return (
-    <Form
-      form={form}
-      initialValues={{ remember: true }}
-      onFinish={onFinish}
-      autoComplete="off"
-      layout="inline"
-    >
-      <Form.Item
-        label="Function Name"
-        name="name"
+    <section style={{ textAlign: 'left' }}>
+      <Typography.Title>
+        Auto Press
+      </Typography.Title>
+      <Form
+        form={form}
+        initialValues={{ remember: true, castTime: 0.5 }}
+        onFinish={onFinish}
+        autoComplete="off"
+        layout="horizontal"
+        style={{ maxWidth: '400px' }}
+        labelCol={{ span: 8 }}
+        wrapperCol={{ span: 16 }}
       >
-        <Input type="text" name="name" />
-      </Form.Item>
-      <Form.Item
-        label="Key Sets"
-        name="keySets"
-      >
-        <Input type="text" name="keySets" />
-      </Form.Item>
-      <Form.Item
-        label="Repeat Interval"
-        name="interval"
-      >
-        <Input type="number" name="interval" suffix="seconds" />
-      </Form.Item>
-      <Form.Item>
-        <Button htmlType="submit" type="ghost" block>Create Task</Button>
-      </Form.Item>
-    </Form>
+        <Form.Item
+          label="Function Name"
+          name="name"
+        >
+          <Input type="text" name="name" />
+        </Form.Item>
+        <Form.Item
+          label="Key Sets"
+          name="keySets"
+        >
+          <Input type="text" name="keySets" />
+        </Form.Item>
+        <Form.Item
+          label="Repeat Interval"
+          name="interval"
+        >
+          <Input type="number" name="interval" suffix="seconds" />
+        </Form.Item>
+        <Form.Item
+          label="CastTime"
+          name="castTime"
+        >
+          <Input type="number" name="castTime" suffix="seconds" />
+        </Form.Item>
+        <Form.Item style={{ justifyContent: 'right' }}>
+          <Button htmlType="submit" type="ghost" block>Create Task</Button>
+        </Form.Item>
+      </Form>
+    </section>
   )
 }
 const LaunchSession: React.FC<{ session: SessionType, onClickLaunch: () => void }> = ({ session, onClickLaunch }) => {
@@ -90,6 +106,92 @@ const LaunchSession: React.FC<{ session: SessionType, onClickLaunch: () => void 
     )
   }
   return <Typography.Text mark italic style={{ color: 'green' }}>{data.page}</Typography.Text>
+}
+const CreateAutoBuff: React.FC<any> = ({ session }) => {
+  const [state, setState] = useRecoilState(taskState)
+  const { currentSessionIndex } = useMemo(() => {
+    const index = state.session.findIndex(s => s.macroId === session.macroId)
+    return {
+      currentSession: state.session[index],
+      currentSessionIndex: index,
+    }
+  }, [session])
+  const [form] = useForm()
+  const onFinish = (values: any) => {
+    console.log('values', values)
+    setState({
+      ...state,
+      session: [
+        ...state.session.slice(0, currentSessionIndex),
+        {
+          ...state.session[currentSessionIndex],
+          autoBuffTask: values,
+        },
+        ...state.session.slice(currentSessionIndex + 1),
+      ],
+    })
+    form.resetFields()
+  }
+  return (
+    <section style={{ textAlign: 'left' }}>
+      <Typography.Title>
+        Auto Buff
+      </Typography.Title>
+      <div>
+        <Typography.Paragraph code>
+          You can split keypress with "," eg: 1,2,3,4,5,6,7,8,9,0,Alt 1,Alt 2,Alt 3,KeyZ
+        </Typography.Paragraph>
+      </div>
+      <Form
+        form={form}
+        initialValues={{ remember: true, castTime: 1.4, mainPlayerPos: 1 }}
+        onFinish={onFinish}
+        autoComplete="off"
+        layout="horizontal"
+        style={{ maxWidth: '600px' }}
+        labelCol={{ span: 8 }}
+        wrapperCol={{ span: 16 }}
+      >
+        <Form.Item
+          label="Auto-Buff repeat Interval"
+          name="interval"
+        >
+          <Input type="number" name="interval" suffix="seconds" />
+        </Form.Item>
+        <Form.Item
+          label="CastTime"
+          name="castTime"
+        >
+          <Input type="number" name="castTime" suffix="seconds" />
+        </Form.Item>
+        <Form.Item
+          label="Main character party position"
+          name="mainPlayerPos"
+        >
+          <Select defaultValue="1" style={{ width: 120 }}>
+            {times(8, (n: number) => (
+              <Option value={n + 1}>{n + 1}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item
+          label="Your main char buff keySets"
+          name="mainPlayerKeySets"
+        >
+          <Input type="text" name="buffPlayerKeySets" placeholder="eg: 1,2,3,4,5,6,7" />
+        </Form.Item>
+        <Form.Item
+          label="Your Ringmaster buff keySets"
+          name="buffPlayerKeySets"
+        >
+          <Input type="text" name="buffPlayerKeySets" placeholder="eg: KeyC" />
+        </Form.Item>
+        <Form.Item style={{ justifyContent: 'right' }}>
+          <Button htmlType="submit" type="ghost" block>Update Auto Buff Profile</Button>
+        </Form.Item>
+      </Form>
+    </section>
+  )
 }
 const TaskItem: React.FC<{
   session: SessionType,
@@ -126,6 +228,56 @@ const TaskItem: React.FC<{
     </div>
   )
 }
+
+const AutoBuffTaskItem: React.FC<{
+  session: SessionType,
+  autoBuff: SessionType['autoBuffTask'],
+  onClickRemove: (args: any) => void
+}> = (props) => {
+  const [action, setAction] = useState(false)
+  const msInterval = (props?.autoBuff?.interval || 600) * 1000
+  useInterval(() => {
+    if (action && props.session.pageId) {
+      axios.post(`/api/auto-buff`, {
+        pageId: props.session.pageId,
+        ...props.autoBuff,
+        castTime: (props.autoBuff?.castTime || 0) * 1000
+      })
+    }
+  }, Number(msInterval))
+  const onClickStop = () => {
+    setAction(false)
+  }
+  const onClickPlay = () => {
+    setAction(true)
+  }
+  return (
+    <div className="flex gap-4 items-center">
+      {action ? <Button type="text" onClick={onClickStop} size="small" danger icon={<PauseOutlined />}>
+        Pause
+      </Button> : <Button type="text" size="small" onClick={onClickPlay} icon={<PlayCircleOutlined />}>Run</Button>}
+
+      <div style={{ textAlign: 'left' }}>
+        <Typography.Text>This task will run every {props.autoBuff?.interval || '-'} seconds</Typography.Text><br />
+        <Typography.Text>Your Ringmaster estimate cast time {props.autoBuff?.castTime || '-'} seconds</Typography.Text>
+        <Divider />
+
+        Buff to main character at party position : [<Typography.Text
+        mark>{props.autoBuff?.mainPlayerPos || '-'}</Typography.Text>]
+        <br />
+        <Typography.Text>with key sets : <Typography.Text
+          code>{props.autoBuff?.mainPlayerKeySets}</Typography.Text></Typography.Text>
+        <Divider />
+        Buff your self
+        <br />
+        <Typography.Text>with key sets : <Typography.Text
+          code>{props.autoBuff?.buffPlayerKeySets}</Typography.Text></Typography.Text>
+      </div>
+      <Button size="small"
+              onClick={() => props.onClickRemove({ session: props.session })}>Remove</Button>
+    </div>
+  )
+}
 const TaskContainers = () => {
   const [state, setState] = useRecoilState<TaskStateType>(taskState)
   const { data, error } = useSWR('/api/check', fetcher)
@@ -142,6 +294,7 @@ const TaskContainers = () => {
           tasks: [],
           pageId: null,
           macroId: nanoid(),
+          autoBuffTask: null,
         },
       ],
     })
@@ -190,12 +343,21 @@ const TaskContainers = () => {
       ],
     })
   }
-
-  const handleClickCloseGame = () => {
-    axios.delete('/api/launch', {}).then(response => {
+  const handleClickRemoveAutoBuff = (args: any) => {
+    const { session, task } = args
+    const currentSessionIndex = state.session.findIndex(s => s.macroId === session.macroId)
+    setState({
+      ...state,
+      session: [
+        ...state.session.slice(0, currentSessionIndex),
+        {
+          ...state.session[currentSessionIndex],
+          autoBuffTask: null,
+        },
+        ...state.session.slice(currentSessionIndex + 1),
+      ],
     })
   }
-
   return (
     <div className="App container my-0 mx-auto p-8">
       {state.session.map((session, j: number) => {
@@ -226,8 +388,16 @@ const TaskContainers = () => {
                 emptyText: 'Empty task settings.',
               }}
             />
-            <Divider />
+            {session.autoBuffTask && (
+              <>
+                <AutoBuffTaskItem session={session} autoBuff={session.autoBuffTask}
+                                  onClickRemove={handleClickRemoveAutoBuff} />
+                <Divider />
+              </>
+            )}
             <CreateTaskItem session={session} />
+            <Divider />
+            <CreateAutoBuff session={session} />
           </div>
         )
       })}
